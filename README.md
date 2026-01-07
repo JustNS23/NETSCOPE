@@ -60,3 +60,8 @@ Maintenant que ton dossier contient le fichier `README.md`, tu retournes dans to
 4.  Les 3 commandes que GitHub t'a données (`git branch...`, `git remote...`, `git push...`).
 
 Dis-moi si tu as réussi à voir ton code en ligne !
+
+## 🖼️ Captues
+
+<img width="1919" height="917" alt="image" src="https://github.com/user-attachments/assets/bb7c7e17-7676-4799-a827-f84b13a2f8d7" />
+
