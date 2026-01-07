@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NETSCOPE - Scanner Réseau</title>
+    <style>
+        /* --- 1. STYLE GÉNÉRAL --- */
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 1100px; margin: 0 auto; padding: 20px; background-color: #f0f2f5; color: #333; }
+        h1 { text-align: center; color: #2c3e50; margin-bottom: 30px; letter-spacing: 1px; }
+
+        /* --- 2. BOITES --- */
+        .box { background: white; border: 1px solid #ddd; padding: 25px; margin-top: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+
+        /* --- 3. FORMULAIRE --- */
+        label { font-weight: bold; display: block; margin-top: 15px; margin-bottom: 8px; color: #555; }
+        select.form-control, input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box; font-size: 1rem; background-color: #fff; }
+        button.btn-main { width: 100%; padding: 15px; margin-top: 25px; border-radius: 8px; border: none; cursor: pointer; font-size: 1.2em; background-color: #007bff; color: white; transition: background 0.3s; font-weight: bold; }
+        button.btn-main:hover { background-color: #0056b3; }
+
+        /* --- 4. SCORE & ALERTES --- */
+        .score-container { text-align: center; margin: 20px 0; padding: 20px; background: #f8f9fa; border-radius: 10px; }
+        .score { font-size: 4em; font-weight: 800; display: block; line-height: 1; margin-top: 10px; }
+        .good { color: #2ecc71; } .medium { color: #f1c40f; } .bad { color: #e74c3c; }
+        ul { list-style-type: none; padding: 0; }
+        li.alerte { background: #fff5f5; border-left: 5px solid #e74c3c; padding: 15px; margin-bottom: 10px; border-radius: 4px; color: #c0392b; font-weight: 600; }
+        li.safe { background: #f0fdf4; border-left: 5px solid #2ecc71; padding: 15px; color: #27ae60; font-weight: 600; }
+
+        /* --- 5. TABLEAU & PAGINATION --- */
+        .table-container { overflow-x: auto; margin-top: 10px; border-radius: 8px; border: 1px solid #eee; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9em; background: white; }
+        thead { background-color: #34495e; color: white; }
+        th { padding: 15px; text-align: left; font-weight: 600; text-transform: uppercase; font-size: 0.8em; }
+        td { padding: 10px; border-bottom: 1px solid #eee; vertical-align: middle; }
+        
+        .row-http { background-color: #fff3cd !important; }
+        .row-dns { background-color: #f8f9fa; color: #555; }
+        .row-tls { background-color: #ffffff; }
+
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.8em; font-weight: bold; }
+        .badge-http { background: #ffc107; color: #333; }
+        .badge-https { background: #d1e7dd; color: #0f5132; }
+        .badge-dns { background: #e2e3e5; color: #383d41; }
+        .badge-other { background: #cfe2ff; color: #084298; }
+        .service-col { color: #0d6efd; font-weight: 700; }
+
+        /* BARRE D'OUTILS (NOUVEAU STYLE) */
+        .toolbar { display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; align-items: center; margin-bottom: 10px; background: #eee; padding: 15px; border-radius: 8px; }
+        
+        .filter-group { display: flex; align-items: center; gap: 10px; }
+        .filter-select { padding: 8px; border-radius: 4px; border: 1px solid #ccc; font-weight: bold; }
+
+        .pagination-controls button { padding: 8px 15px; border: 1px solid #ccc; background: white; cursor: pointer; border-radius: 4px; margin: 0 5px; }
+        .pagination-controls button:hover { background: #ddd; }
+        .pagination-controls button:disabled { background: #f5f5f5; color: #ccc; cursor: not-allowed; }
+        .page-info { font-weight: bold; margin: 0 10px; }
+
+        .hidden { display: none; }
+        #loader { text-align: center; color: #007bff; font-weight: bold; font-size: 1.2em; }
+        .loader-spinner { display: inline-block; width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <h1>📡 NETSCOPE - Analyseur de Trafic</h1>
+
+    <div class="box">
+        <h3>🛠️ Configuration du Scan</h3>
+        <label>Interface Réseau :</label>
+        <select id="interfaceSelect" class="form-control"><option>Chargement...</option></select>
+        <label>Durée (secondes) :</label>
+        <input type="number" id="duree" value="10" min="5" max="60">
+        <button onclick="lancerScan()" class="btn-main">🚀 LANCER L'ANALYSE</button>
+    </div>
+
+    <div id="loader" class="hidden box">
+        <div class="loader-spinner"></div>
+        <p>Analyse complète en cours...</p>
+        <p style="font-size:0.8em;">(Récupération de tout le trafic, cela peut prendre un moment)</p>
+    </div>
+
+    <div id="resultats" class="hidden box">
+        
+        <div class="score-container">
+            <div>Score de Santé Réseau</div>
+            <span id="scoreDisplay" class="score">--</span>
+        </div>
+        <h4>⚠️ Sécurité & Menaces :</h4>
+        <ul id="listeAlertes"></ul>
+
+        <div style="margin-top: 30px; margin-bottom: 5px;">
+            <h4>🕵️ Journal des connexions :</h4>
+        </div>
+
+        <div class="toolbar">
+            
+            <div class="filter-group">
+                <span>🔍 Filtrer par :</span>
+                <select id="filtreProto" class="filter-select" onchange="appliquerFiltre()">
+                    <option value="ALL">Tout voir</option>
+                    <option value="SUSPECT">⚠️ Suspect / HTTP (Non sécurisé)</option>
+                    <option value="DNS">DNS (Noms de domaine)</option>
+                    <option value="HTTPS">HTTPS (Sécurisé)</option>
+                    <option value="TCP">TCP / UDP (Autre)</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                Afficher 
+                <select id="rowsPerPage" onchange="changerTaillePage()" style="padding: 5px; border-radius: 4px;">
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                    <option value="200">200</option>
+                </select>
+            </div>
+
+            <div class="pagination-controls">
+                <button id="btnPrev" onclick="changerPage(-1)">❮</button>
+                <span id="pageInfo" class="page-info">1/1</span>
+                <button id="btnNext" onclick="changerPage(1)">❯</button>
+            </div>
+            
+            <div style="font-size: 0.9em;">
+                Total affiché : <span id="totalAffiche" style="font-weight:bold">0</span>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 10%;">Heure</th>
+                        <th style="width: 15%;">Service / App</th>
+                        <th style="width: 15%;">Source</th>
+                        <th style="width: 15%;">Destination</th>
+                        <th style="width: 10%;">Proto</th>
+                        <th style="width: 35%;">Détails Techniques</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // VARIABLES GLOBALES
+        let TOUT_LE_TRAFIC = [];   // La source de vérité (tous les paquets)
+        let TRAFIC_FILTRE = [];    // La liste actuellement filtrée (ce qu'on affiche)
+        let pageActuelle = 1;
+        let lignesParPage = 50;
+
+        // 1. Init
+        window.onload = async function() {
+            try {
+                const response = await fetch('/api/interfaces');
+                const interfaces = await response.json();
+                const select = document.getElementById('interfaceSelect');
+                select.innerHTML = ""; 
+                if (interfaces.length === 0) select.add(new Option("Aucune interface", ""));
+                interfaces.forEach(iface => select.add(new Option(iface.name, iface.id)));
+            } catch (e) { console.error(e); }
+        };
+
+        // 2. Scan
+        async function lancerScan() {
+            const iface = document.getElementById('interfaceSelect').value;
+            const duree = document.getElementById('duree').value;
+            if (!iface) { alert("Choisis une interface !"); return; }
+
+            document.getElementById('loader').classList.remove('hidden');
+            document.getElementById('resultats').classList.add('hidden');
+            
+            const formData = new FormData();
+            formData.append('duree', duree);
+            formData.append('interface', iface);
+
+            try {
+                const response = await fetch('/scan', { method: 'POST', body: formData });
+                const json = await response.json();
+
+                if(json.status === 'success') {
+                    // SAUVEGARDE DES DONNÉES
+                    TOUT_LE_TRAFIC = json.data.details_trafic || [];
+                    
+                    // Affiche les scores
+                    afficherScoreEtAlertes(json.data);
+                    
+                    // On réinitialise le filtre sur "Tout voir"
+                    document.getElementById('filtreProto').value = "ALL";
+                    appliquerFiltre(); // Cela va aussi déclencher l'affichage du tableau
+                } else {
+                    alert("Erreur: " + json.message);
+                }
+            } catch (e) {
+                alert("Erreur serveur : " + e);
+            } finally {
+                document.getElementById('loader').classList.add('hidden');
+            }
+        }
+
+        // 3. Score
+        function afficherScoreEtAlertes(data) {
+            document.getElementById('resultats').classList.remove('hidden');
+
+            const scoreEl = document.getElementById('scoreDisplay');
+            scoreEl.innerText = data.score_global + "/100";
+            scoreEl.className = "score " + (data.score_global > 80 ? "good" : (data.score_global > 50 ? "medium" : "bad"));
+
+            const ul = document.getElementById('listeAlertes');
+            ul.innerHTML = "";
+            if(data.alertes_securite.length === 0) {
+                ul.innerHTML = "<li class='safe'>✅ Aucune menace détectée.</li>";
+            } else {
+                data.alertes_securite.forEach(alerte => {
+                    const li = document.createElement('li');
+                    li.className = "alerte";
+                    li.innerText = "🛑 " + alerte;
+                    ul.appendChild(li);
+                });
+            }
+        }
+
+        // 4. LOGIQUE DE FILTRE (NOUVEAU !)
+        function appliquerFiltre() {
+            const filtre = document.getElementById('filtreProto').value;
+            
+            if (filtre === "ALL") {
+                TRAFIC_FILTRE = TOUT_LE_TRAFIC;
+            } 
+            else if (filtre === "SUSPECT") {
+                // On garde HTTP et tout ce qui n'est pas chiffré/standard
+                TRAFIC_FILTRE = TOUT_LE_TRAFIC.filter(p => p.proto === 'HTTP');
+            }
+            else {
+                // Filtre exact (DNS, HTTPS, etc.)
+                TRAFIC_FILTRE = TOUT_LE_TRAFIC.filter(p => p.proto === filtre);
+            }
+
+            // On met à jour le compteur total
+            document.getElementById('totalAffiche').innerText = TRAFIC_FILTRE.length;
+
+            // On revient page 1 et on rafraichit
+            pageActuelle = 1;
+            afficherTableauPage();
+        }
+
+        // 5. LOGIQUE DE PAGINATION
+        function changerTaillePage() {
+            lignesParPage = parseInt(document.getElementById('rowsPerPage').value);
+            pageActuelle = 1; 
+            afficherTableauPage();
+        }
+
+        function changerPage(direction) {
+            const maxPages = Math.ceil(TRAFIC_FILTRE.length / lignesParPage);
+            const nouvellePage = pageActuelle + direction;
+
+            if (nouvellePage >= 1 && nouvellePage <= maxPages) {
+                pageActuelle = nouvellePage;
+                afficherTableauPage();
+            }
+        }
+
+        function afficherTableauPage() {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = "";
+
+            if (TRAFIC_FILTRE.length === 0) {
+                tbody.innerHTML = "<tr><td colspan='6' style='text-align:center; padding:20px;'>Aucun résultat pour ce filtre.</td></tr>";
+                document.getElementById('pageInfo').innerText = "0/0";
+                return;
+            }
+
+            // Découpage
+            const debut = (pageActuelle - 1) * lignesParPage;
+            const fin = debut + lignesParPage;
+            const donneesPage = TRAFIC_FILTRE.slice(debut, fin); 
+
+            // Infos Page
+            const maxPages = Math.ceil(TRAFIC_FILTRE.length / lignesParPage);
+            document.getElementById('pageInfo').innerText = `${pageActuelle}/${maxPages}`;
+            document.getElementById('btnPrev').disabled = (pageActuelle === 1);
+            document.getElementById('btnNext').disabled = (pageActuelle === maxPages);
+
+            // Rendu
+            donneesPage.forEach(ligne => {
+                const tr = document.createElement('tr');
+                
+                let badgeClass = "badge-other";
+                if(ligne.proto === 'HTTP') { tr.className = "row-http"; badgeClass = "badge-http"; }
+                if(ligne.proto === 'DNS') { tr.className = "row-dns"; badgeClass = "badge-dns"; }
+                if(ligne.proto === 'HTTPS') { tr.className = "row-tls"; badgeClass = "badge-https"; }
+
+                let serviceDisplay = (ligne.service && ligne.service !== "-" && ligne.service !== "Autre") 
+                    ? `<span class="service-col">${ligne.service}</span>` 
+                    : `<span style="color:#999">-</span>`;
+
+                tr.innerHTML = `
+                    <td>${ligne.heure}</td>
+                    <td>${serviceDisplay}</td>
+                    <td>${ligne.src || '?'}</td>
+                    <td>${ligne.dst || '?'}</td>
+                    <td><span class="badge ${badgeClass}">${ligne.proto}</span></td>
+                    <td style="font-size:0.85em; color:#555;">${ligne.info}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+    </script>
+</body>
+</html>
