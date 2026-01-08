@@ -19,5 +19,6 @@ NETSCOPE est un outil d'analyse réseau léger basé sur **Python (Flask)** et *
 
 1. Cloner le dépôt :
    ```bash
-   git clone [https://github.com/JustNS23/oscope.git](https://github.com/JustNS23/oscope.git)
+   git clone https://github.com/JustNS23/oscope.git
+
    cd oscope
