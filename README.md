@@ -1,54 +1,48 @@
-# 📡 NETSCOPE - Analyseur de Trafic Réseau
+# NETSCOPE - Analyseur de Trafic Réseau
 
-**NETSCOPE** est un outil pédagogique d'analyse réseau basé sur **Python (Flask)** et **Tshark** (Wireshark). Il permet de scanner le trafic Wi-Fi/Ethernet, d'attribuer un "Score de Santé" et de visualiser les connexions (HTTP, DNS, TLS) via une interface Web moderne.
+**NETSCOPE** est un outil pédagogique d'analyse réseau développé en **Python (Flask)** et utilisant **Tshark** (Wireshark). Il permet de scanner le trafic Wi-Fi ou Ethernet, d'attribuer un "Score de Santé" global et de visualiser les connexions (HTTP, DNS, TLS) via une interface Web.
 
-## 🚀 Fonctionnalités
+## Fonctionnalités principales
 
-- **Score de Santé (0-100) :** Calcul en temps réel basé sur la sécurité des paquets.
-- **Alertes de Sécurité :** Détection immédiate des mots de passe en clair (HTTP Basic Auth).
-- **Analyse Intelligente :** Reconnaissance automatique des services (Google, Netflix, Instagram...).
-- **Interface Web :** Tableau de bord avec filtres (DNS, HTTPS, Suspect) et pagination.
+- **Score de Santé (0-100)** : Calcul en temps réel basé sur la sécurité des paquets analysés.
+- **Alertes de Sécurité** : Détection immédiate des mots de passe transmis en clair (HTTP Basic Auth).
+- **Analyse Intelligente** : Reconnaissance automatique des services tiers (Google, Netflix, Instagram...).
+- **Interface Web** : Tableau de bord complet avec filtrage (DNS, HTTPS, Suspect) et pagination.
 
-## 🛠️ Prérequis
+## Prérequis
 
-1. **Python 3.x** installé.
-2. **Wireshark** installé sur la machine (avec Tshark inclus).
+- **Python 3.x** installé sur la machine.
+- **Wireshark** installé (assurez-vous que **Tshark** est inclus lors de l'installation).
 
-## 📦 Installation
+## Installation
 
-1. Cloner ce projet :
+Installer les dépendances Installez les bibliothèques Python nécessaires via pip :
+```bashpip install -r requirements.txt```
+
+1. **Cloner le projet**
+   Récupérez le code source via Git :
    ```bash
-   git clone https://github.com/JustNS23/netscope.git
+   git clone [https://github.com/JustNS23/netscope.git](https://github.com/JustNS23/netscope.git)
    cd netscope
-   ```
-2. Installer les dépendances :
-```Bash
-pip install -r requirements.txt
-```
-Configuration (Windows uniquement) :
 
-Ensuite, ouvrez *app.py* et *analyzer.py*.
+## Configuration (Windows)
+Une version de Wireshark portable est déjà présente mais il est possible de spécifier le chemin vers l'exécutable Tshark.
+Ouvrez les fichiers app.py et analyzer.py dans votre éditeur de code.
 
-Vérifiez que la ligne suivante pointe bien vers votre installation de Wireshark :
-```Python
-TSHARK_CMD = r"C:\Program Files\Wireshark\tshark.exe"
-```
+Localisez la variable TSHARK_CMD.
 
-▶️ Utilisation
-Lancer l'application :
-```Bash
-python app.py
-```
-Ouvrir le navigateur sur : `http://127.0.0.1:5000`
+Assurez-vous qu'elle pointe vers votre dossier d'installation Wireshark (exemple ci-dessous) :
+```bash TSHARK_CMD = r"C:\Program Files\Wireshark\tshark.exe"```
 
-Sélectionner l'interface réseau dans le menu déroulant et cliquer sur Lancer l'Analyse.
+## Utilisation
+1.Lancer l'application Exécutez la commande suivante dans le terminal :
+```bash python app.py```
 
-⚠️ Avertissement
-Cet outil est destiné à des fins éducatives et de diagnostic réseau uniquement. L'analyse de réseaux tiers sans autorisation est illégale.
+2.Accéder à l'interface Ouvrez votre navigateur et allez à l'adresse : http://127.0.0.1:5000
 
----
-## 🖼️ Captue visuel
-<img width="1919" height="917" alt="image" src="https://github.com/user-attachments/assets/bb7c7e17-7676-4799-a827-f84b13a2f8d7" />
+3.Démarrer l'analyse Sélectionnez votre interface réseau (Wi-Fi ou Ethernet) dans le menu déroulant et cliquez sur "Lancer l'Analyse".
 
-## 🖼️ Captue exemple visuel
-<img width="1920" height="917" alt="image" src="https://github.com/user-attachments/assets/aad7c959-4040-4985-8366-658f2ed52154" />
+## Avertissement légal
+Cet outil est conçu exclusivement à des fins éducatives et de diagnostic réseau sur votre propre infrastructure. L'interception ou l'analyse de réseaux tiers sans consentement explicite est illégale et punissable par la loi.
+
+## Aperçu de l'interface
