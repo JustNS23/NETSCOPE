@@ -3,35 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NETSCOPE - Scanner Réseau</title>
+    <title>NETSCOPE - Security Audit</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        /* --- 1. STYLE GÉNÉRAL --- */
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 1100px; margin: 0 auto; padding: 20px; background-color: #f0f2f5; color: #333; }
-        h1 { text-align: center; color: #2c3e50; margin-bottom: 30px; letter-spacing: 1px; }
+        /* --- STYLE GÉNÉRAL --- */
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; background-color: #f0f2f5; color: #333; }
+        
+        .header-main { text-align: center; margin-bottom: 30px; }
+        .logo-img { max-width: 120px; height: auto; margin-bottom: 15px; display: block; margin-left: auto; margin-right: auto; }
+        h1 { text-align: center; color: #2c3e50; margin-bottom: 5px; letter-spacing: 1px; }
+        .subtitle { text-align: center; color: #555; margin-top: 0; font-size: 0.9em; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 30px; }
 
-        /* --- 2. BOITES --- */
         .box { background: white; border: 1px solid #ddd; padding: 25px; margin-top: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        label { font-weight: bold; display: block; margin-top: 15px; margin-bottom: 5px; color: #555; }
+        select.form-control, input.form-control { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ccc; box-sizing: border-box; }
+        
+        .advanced-section { margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #4caf50; display: none; }
+        .advanced-toggle { margin-top: 15px; cursor: pointer; color: #4caf50; font-weight: bold; display: inline-flex; align-items: center; }
+        .advanced-toggle input { margin-right: 10px; }
 
-        /* --- 3. FORMULAIRE --- */
-        label { font-weight: bold; display: block; margin-top: 15px; margin-bottom: 8px; color: #555; }
-        select.form-control, input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box; font-size: 1rem; background-color: #fff; }
         button.btn-main { width: 100%; padding: 15px; margin-top: 25px; border-radius: 8px; border: none; cursor: pointer; font-size: 1.2em; background-color: #007bff; color: white; transition: background 0.3s; font-weight: bold; }
         button.btn-main:hover { background-color: #0056b3; }
 
-        /* --- 4. SCORE & ALERTES --- */
+        /* --- SCORE & ALERTES --- */
         .score-container { text-align: center; margin: 20px 0; padding: 20px; background: #f8f9fa; border-radius: 10px; }
         .score { font-size: 4em; font-weight: 800; display: block; line-height: 1; margin-top: 10px; }
         .good { color: #2ecc71; } .medium { color: #f1c40f; } .bad { color: #e74c3c; }
         ul { list-style-type: none; padding: 0; }
-        li.alerte { background: #fff5f5; border-left: 5px solid #e74c3c; padding: 15px; margin-bottom: 10px; border-radius: 4px; color: #c0392b; font-weight: 600; }
-        li.safe { background: #f0fdf4; border-left: 5px solid #2ecc71; padding: 15px; color: #27ae60; font-weight: 600; }
+        li.alerte { background: #fff5f5; border-left: 5px solid #e74c3c; padding: 10px; margin-bottom: 5px; border-radius: 4px; color: #c0392b; font-weight: 600; }
+        li.safe { background: #f0fdf4; border-left: 5px solid #2ecc71; padding: 10px; color: #27ae60; font-weight: 600; }
 
-        /* --- 5. TABLEAU & PAGINATION --- */
+        /* --- TABLEAU --- */
         .table-container { overflow-x: auto; margin-top: 10px; border-radius: 8px; border: 1px solid #eee; }
         table { width: 100%; border-collapse: collapse; font-size: 0.9em; background: white; }
         thead { background-color: #34495e; color: white; }
-        th { padding: 15px; text-align: left; font-weight: 600; text-transform: uppercase; font-size: 0.8em; }
-        td { padding: 10px; border-bottom: 1px solid #eee; vertical-align: middle; }
+        th { padding: 12px; text-align: left; font-weight: 600; font-size: 0.8em; }
+        td { padding: 8px 12px; border-bottom: 1px solid #eee; vertical-align: middle; }
         
         .row-http { background-color: #fff3cd !important; }
         .row-dns { background-color: #f8f9fa; color: #555; }
@@ -41,88 +48,133 @@
         .badge-http { background: #ffc107; color: #333; }
         .badge-https { background: #d1e7dd; color: #0f5132; }
         .badge-dns { background: #e2e3e5; color: #383d41; }
+        .badge-tcp { background: #cff4fc; color: #055160; }
+        .badge-udp { background: #e0cffc; color: #490560; }
         .badge-other { background: #cfe2ff; color: #084298; }
-        .service-col { color: #0d6efd; font-weight: 700; }
-
-        /* BARRE D'OUTILS (NOUVEAU STYLE) */
-        .toolbar { display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; align-items: center; margin-bottom: 10px; background: #eee; padding: 15px; border-radius: 8px; }
         
-        .filter-group { display: flex; align-items: center; gap: 10px; }
-        .filter-select { padding: 8px; border-radius: 4px; border: 1px solid #ccc; font-weight: bold; }
+        .service-col { color: #0d6efd; font-weight: 700; }
+        .btn-detail { background: #6c757d; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8em; }
+        
+        .toolbar { display: flex; flex-wrap: wrap; gap: 15px; align-items: center; margin-bottom: 10px; background: #e3e8ee; padding: 15px; border-radius: 8px; border-left: 4px solid #2c3e50; }
+        .filter-group { display: flex; flex-direction: column; gap: 2px; }
+        .filter-group label { margin: 0; font-size: 0.8em; color:#2c3e50; font-weight:bold; }
+        .filter-select, .filter-input { padding: 8px; border-radius: 4px; border: 1px solid #ccc; }
 
-        .pagination-controls button { padding: 8px 15px; border: 1px solid #ccc; background: white; cursor: pointer; border-radius: 4px; margin: 0 5px; }
-        .pagination-controls button:hover { background: #ddd; }
-        .pagination-controls button:disabled { background: #f5f5f5; color: #ccc; cursor: not-allowed; }
-        .page-info { font-weight: bold; margin: 0 10px; }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); }
+        .modal-content { background-color: #fefefe; margin: 5% auto; padding: 0; border: 1px solid #888; width: 80%; max-width: 800px; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); animation: animatetop 0.4s; }
+        @keyframes animatetop { from {top:-300px; opacity:0} to {top:0; opacity:1} }
+        .modal-header { padding: 15px; background-color: #34495e; color: white; border-top-left-radius: 8px; border-top-right-radius: 8px; display: flex; justify-content: space-between; align-items: center; }
+        .modal-body { padding: 20px; max-height: 70vh; overflow-y: auto; font-family: 'Consolas', 'Monaco', monospace; font-size: 0.9em; }
+        .close { color: white; font-size: 28px; font-weight: bold; cursor: pointer; }
+        
+        .layer-title { background: #e9ecef; padding: 8px; margin-top: 10px; font-weight: bold; border-left: 4px solid #007bff; color: #333; }
+        .layer-content { padding: 10px; border: 1px solid #eee; background: #fff; word-break: break-all; }
+        .detail-row { display: flex; border-bottom: 1px solid #f0f0f0; padding: 4px 0; }
+        .detail-key { width: 40%; color: #666; font-weight: bold; }
+        .detail-val { width: 60%; color: #222; }
 
-        .hidden { display: none; }
-        #loader { text-align: center; color: #007bff; font-weight: bold; font-size: 1.2em; }
-        .loader-spinner { display: inline-block; width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .hidden { display: none !important; }
+        #loader { text-align: center; color: #007bff; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <h1>📡 NETSCOPE - Analyseur de Trafic</h1>
+    <div class="header-main">
+        <img src="/static/logo.png" alt="Logo NETSCOPE" class="logo-img">
+        <h1>NETSCOPE</h1>
+        <p class="subtitle">Network Traffic Analysis & Security Audit Tool</p>
+    </div>
 
     <div class="box">
-        <h3>🛠️ Configuration du Scan</h3>
-        <label>Interface Réseau :</label>
-        <select id="interfaceSelect" class="form-control"><option>Chargement...</option></select>
-        <label>Durée (secondes) :</label>
-        <input type="number" id="duree" value="10" min="5" max="60">
-        <button onclick="lancerScan()" class="btn-main">🚀 LANCER L'ANALYSE</button>
+        <h3>🛠️ Configuration de l'Audit</h3>
+        <label for="interfaceSelect">Interface d'acquisition :</label>
+        <p style="color: #7f8c8d; font-style: italic; font-size: 0.85em; margin-top: -3px; margin-bottom: 10px;">
+            Sélectionnez l'interface active (WLAN/Ethernet) pour l'injection du mode promiscuité.
+        </p>
+        <select id="interfaceSelect" class="form-control"><option>Initialisation des drivers...</option></select>
+        
+        <label>Durée d'écoute (secondes) :</label>
+        <input type="number" id="duree" class="form-control" value="10" min="1" max="120">
+
+        <label class="advanced-toggle">
+            <input type="checkbox" id="checkAdvanced" onchange="toggleAdvanced()"> 
+            ⚙️ Filtres de Capture (Wireshark)
+        </label>
+
+        <div id="advancedArea" class="advanced-section">
+            <p style="margin-top:0; font-size:0.9em; color:#666; margin-bottom: 8px;">Filtre de capture (Syntaxe Wireshark) :</p>
+            <div style="margin-bottom: 10px; display: flex; align-items: center; gap: 10px;">
+                <label style="margin:0; font-size: 0.9em; color:#2e7d32;">⚡ Modèles :</label>
+                <select onchange="remplirFiltre(this.value)" style="padding: 5px; border-radius: 4px; border: 1px solid #4caf50; cursor: pointer;">
+                    <option value="">-- Choisir --</option>
+                    <option value="tcp.port == 80">Web non sécurisé (HTTP)</option>
+                    <option value="tcp.port == 443">Web sécurisé (HTTPS)</option>
+                    <option value="!dns">Tout SAUF le DNS</option>
+                    <option value="ip.addr == ">Cibler une IP...</option>
+                </select>
+            </div>
+            <div style="position: relative;">
+                <input type="text" id="rawFilter" class="form-control" placeholder="Filtre..." style="background-color: #e8f5e9; border: 1px solid #4caf50; font-family: monospace; color: #2e7d32; font-weight: bold;">
+            </div>
+        </div>
+
+        <button onclick="lancerScan()" class="btn-main">LANCER L'AUDIT</button>
     </div>
 
     <div id="loader" class="hidden box">
-        <div class="loader-spinner"></div>
-        <p>Analyse complète en cours...</p>
-        <p style="font-size:0.8em;">(Récupération de tout le trafic, cela peut prendre un moment)</p>
+        <p>🔄️ Analyse en cours...</p>
+        <p>Capture et inspection des paquets...</p>
     </div>
 
     <div id="resultats" class="hidden box">
-        
         <div class="score-container">
             <div>Score de Santé Réseau</div>
             <span id="scoreDisplay" class="score">--</span>
+            
+            <div style="margin-top: 15px; display:flex; gap:10px; justify-content:center;">
+                <button onclick="genererRapportPDF()" style="padding: 10px 20px; background-color: #34495e; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.9em;">
+                    📄 Rapport PDF (Pro)
+                </button>
+                
+                <a id="btnDownload" href="#" style="display:none; padding: 10px 20px; background-color: #2980b9; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.9em; text-decoration:none;">
+                    💾 Télécharger .PCAP
+                </a>
+            </div>
         </div>
-        <h4>⚠️ Sécurité & Menaces :</h4>
+        
+        <h4>⚠️ Sécurité & Conformité :</h4>
         <ul id="listeAlertes"></ul>
 
-        <div style="margin-top: 30px; margin-bottom: 5px;">
-            <h4>🕵️ Journal des connexions :</h4>
-        </div>
-
+        <div style="margin-top: 30px;"><h4>🕵️ Journal des Flux :</h4></div>
+        
         <div class="toolbar">
-            
             <div class="filter-group">
-                <span>🔍 Filtrer par :</span>
-                <select id="filtreProto" class="filter-select" onchange="appliquerFiltre()">
-                    <option value="ALL">Tout voir</option>
-                    <option value="SUSPECT">⚠️ Suspect / HTTP (Non sécurisé)</option>
-                    <option value="DNS">DNS (Noms de domaine)</option>
-                    <option value="HTTPS">HTTPS (Sécurisé)</option>
-                    <option value="TCP">TCP / UDP (Autre)</option>
+                <label>Filtrage Protocolaire :</label>
+                <select id="filtreProto" class="filter-select" onchange="appliquerFiltresLocaux()">
+                    <option value="ALL">Tout le trafic</option>
+                    <option value="SUSPECT">⚠️ Flux Non Chiffrés (Cleartext)</option>
+                    <option value="DNS">Résolution de Noms (DNS)</option>
+                    <option value="HTTPS">Trafic Chiffré (TLS/SSL)</option>
+                    <option value="TCP">Transport TCP</option>
+                    <option value="UDP">Transport UDP</option>
                 </select>
             </div>
-
             <div class="filter-group">
-                Afficher 
-                <select id="rowsPerPage" onchange="changerTaillePage()" style="padding: 5px; border-radius: 4px;">
+                <label>Recherche Ciblée (IP) :</label>
+                <input type="text" id="filtreIpClient" class="filter-input" placeholder="Ex: 192.168..." onkeyup="appliquerFiltresLocaux()">
+            </div>
+            <div class="filter-group" style="margin-left:auto;">
+                <label>Densité :</label>
+                <select id="rowsPerPage" class="filter-select" onchange="changerTaillePage()">
                     <option value="50">50</option>
                     <option value="100">100</option>
                     <option value="200">200</option>
                 </select>
             </div>
-
-            <div class="pagination-controls">
-                <button id="btnPrev" onclick="changerPage(-1)">❮</button>
-                <span id="pageInfo" class="page-info">1/1</span>
-                <button id="btnNext" onclick="changerPage(1)">❯</button>
-            </div>
-            
-            <div style="font-size: 0.9em;">
-                Total affiché : <span id="totalAffiche" style="font-weight:bold">0</span>
+            <div>
+                <button onclick="changerPage(-1)">❮</button>
+                <span id="pageInfo" style="margin:0 10px; font-weight:bold; font-family:monospace;">1/1</span>
+                <button onclick="changerPage(1)">❯</button>
             </div>
         </div>
 
@@ -130,12 +182,13 @@
             <table>
                 <thead>
                     <tr>
+                        <th style="width: 5%;">Inspect</th>
                         <th style="width: 10%;">Heure</th>
-                        <th style="width: 15%;">Service / App</th>
+                        <th style="width: 15%;">Service</th>
                         <th style="width: 15%;">Source</th>
                         <th style="width: 15%;">Destination</th>
                         <th style="width: 10%;">Proto</th>
-                        <th style="width: 35%;">Détails Techniques</th>
+                        <th>Payload Info</th>
                     </tr>
                 </thead>
                 <tbody id="tableBody"></tbody>
@@ -143,30 +196,56 @@
         </div>
     </div>
 
+    <div id="detailModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🔍 Inspection Profonde (DPI)</h3>
+                <span class="close" onclick="fermerModal()">&times;</span>
+            </div>
+            <div class="modal-body" id="modalContent"></div>
+        </div>
+    </div>
+
     <script>
-        // VARIABLES GLOBALES
-        let TOUT_LE_TRAFIC = [];   // La source de vérité (tous les paquets)
-        let TRAFIC_FILTRE = [];    // La liste actuellement filtrée (ce qu'on affiche)
+        let TOUT_LE_TRAFIC = [];
+        let TRAFIC_FILTRE = [];
+        let STATS_GLOBAUX = {}; 
         let pageActuelle = 1;
         let lignesParPage = 50;
 
-        // 1. Init
         window.onload = async function() {
             try {
                 const response = await fetch('/api/interfaces');
                 const interfaces = await response.json();
                 const select = document.getElementById('interfaceSelect');
-                select.innerHTML = ""; 
-                if (interfaces.length === 0) select.add(new Option("Aucune interface", ""));
+                select.innerHTML = "";
+                if(interfaces.length === 0) select.add(new Option("Erreur Tshark", ""));
                 interfaces.forEach(iface => select.add(new Option(iface.name, iface.id)));
-            } catch (e) { console.error(e); }
+            } catch (e) {}
         };
 
-        // 2. Scan
+        function toggleAdvanced() {
+            const isChecked = document.getElementById('checkAdvanced').checked;
+            document.getElementById('advancedArea').style.display = isChecked ? 'block' : 'none';
+        }
+
+        function remplirFiltre(valeur) {
+            const input = document.getElementById('rawFilter');
+            if (valeur === "") return;
+            input.value = valeur;
+            input.focus();
+        }
+
         async function lancerScan() {
             const iface = document.getElementById('interfaceSelect').value;
             const duree = document.getElementById('duree').value;
-            if (!iface) { alert("Choisis une interface !"); return; }
+            let rawFilter = "";
+            
+            if (document.getElementById('checkAdvanced') && document.getElementById('checkAdvanced').checked) {
+                rawFilter = document.getElementById('rawFilter').value;
+            }
+
+            if (!iface) { alert("Veuillez sélectionner une interface réseau !"); return; }
 
             document.getElementById('loader').classList.remove('hidden');
             document.getElementById('resultats').classList.add('hidden');
@@ -174,139 +253,341 @@
             const formData = new FormData();
             formData.append('duree', duree);
             formData.append('interface', iface);
+            formData.append('raw_filter', rawFilter);
 
             try {
+                console.log("Envoi de la demande au serveur...");
                 const response = await fetch('/scan', { method: 'POST', body: formData });
                 const json = await response.json();
+                console.log("Données reçues :", json);
 
                 if(json.status === 'success') {
-                    // SAUVEGARDE DES DONNÉES
                     TOUT_LE_TRAFIC = json.data.details_trafic || [];
+                    STATS_GLOBAUX = json.data.repartition_protocoles || {}; 
+
+                    const btnDl = document.getElementById('btnDownload');
+                    if(json.pcap_file) {
+                        btnDl.href = "/download/" + json.pcap_file;
+                        btnDl.style.display = "inline-block"; 
+                    }
+
+                    console.log(`J'ai reçu ${TOUT_LE_TRAFIC.length} paquets.`);
+
+                    if (TOUT_LE_TRAFIC.length === 0) {
+                        alert("Le scan a fonctionné mais 0 paquet correspondant au filtre n'a été trouvé.");
+                    }
+
+                    afficherScore(json.data);
                     
-                    // Affiche les scores
-                    afficherScoreEtAlertes(json.data);
-                    
-                    // On réinitialise le filtre sur "Tout voir"
                     document.getElementById('filtreProto').value = "ALL";
-                    appliquerFiltre(); // Cela va aussi déclencher l'affichage du tableau
+                    document.getElementById('filtreIpClient').value = "";
+                    appliquerFiltresLocaux();
                 } else {
-                    alert("Erreur: " + json.message);
+                    console.error("Erreur Backend:", json.message);
+                    alert("Erreur retournée par le serveur : " + json.message);
                 }
-            } catch (e) {
-                alert("Erreur serveur : " + e);
-            } finally {
-                document.getElementById('loader').classList.add('hidden');
+            } catch (e) { 
+                console.error("Erreur Javascript:", e);
+                alert("Erreur technique (voir console F12) : " + e); 
+            } 
+            finally { 
+                document.getElementById('loader').classList.add('hidden'); 
             }
         }
 
-        // 3. Score
-        function afficherScoreEtAlertes(data) {
+        function afficherScore(data) {
             document.getElementById('resultats').classList.remove('hidden');
-
             const scoreEl = document.getElementById('scoreDisplay');
             scoreEl.innerText = data.score_global + "/100";
             scoreEl.className = "score " + (data.score_global > 80 ? "good" : (data.score_global > 50 ? "medium" : "bad"));
-
-            const ul = document.getElementById('listeAlertes');
-            ul.innerHTML = "";
-            if(data.alertes_securite.length === 0) {
-                ul.innerHTML = "<li class='safe'>✅ Aucune menace détectée.</li>";
-            } else {
-                data.alertes_securite.forEach(alerte => {
-                    const li = document.createElement('li');
-                    li.className = "alerte";
-                    li.innerText = "🛑 " + alerte;
-                    ul.appendChild(li);
-                });
-            }
-        }
-
-        // 4. LOGIQUE DE FILTRE (NOUVEAU !)
-        function appliquerFiltre() {
-            const filtre = document.getElementById('filtreProto').value;
             
-            if (filtre === "ALL") {
-                TRAFIC_FILTRE = TOUT_LE_TRAFIC;
-            } 
-            else if (filtre === "SUSPECT") {
-                // On garde HTTP et tout ce qui n'est pas chiffré/standard
-                TRAFIC_FILTRE = TOUT_LE_TRAFIC.filter(p => p.proto === 'HTTP');
-            }
-            else {
-                // Filtre exact (DNS, HTTPS, etc.)
-                TRAFIC_FILTRE = TOUT_LE_TRAFIC.filter(p => p.proto === filtre);
-            }
-
-            // On met à jour le compteur total
-            document.getElementById('totalAffiche').innerText = TRAFIC_FILTRE.length;
-
-            // On revient page 1 et on rafraichit
-            pageActuelle = 1;
-            afficherTableauPage();
+            const ul = document.getElementById('listeAlertes');
+            ul.innerHTML = data.alertes_securite.length === 0 
+                ? "<li class='safe'>✅ Conformité validée. Trafic sain.</li>" 
+                : data.alertes_securite.map(a => `<li class='alerte'>🛑 ${a}</li>`).join('');
         }
 
-        // 5. LOGIQUE DE PAGINATION
+        function genererRapportPDF() {
+            // --- 1. RECUPERATION DES DONNEES ---
+            const scoreText = document.getElementById('scoreDisplay').innerText;
+            const scoreVal = parseInt(scoreText);
+            const dateAudit = new Date().toLocaleString('fr-FR');
+            const logoSrc = document.querySelector('.logo-img').src;
+            
+            const filtreProto = document.getElementById('filtreProto').value;
+            const filtreIp = document.getElementById('filtreIpClient').value;
+            const isFiltered = (filtreProto !== 'ALL' || filtreIp !== '');
+            const titreRapport = isFiltered ? "Rapport d'Audit (Vue Filtrée)" : "Rapport d'Audit Complet";
+
+            const dataSet = TRAFIC_FILTRE; 
+            const totalPaquets = dataSet.length;
+
+            // --- 2. STATISTIQUES ---
+            let countsProto = {};
+            let countsSource = {};
+            let nbHttp = 0;
+            let nbTls = 0;
+
+            dataSet.forEach(p => {
+                countsProto[p.proto] = (countsProto[p.proto] || 0) + 1;
+                const src = p.src || "Inconnu";
+                countsSource[src] = (countsSource[src] || 0) + 1;
+                if(p.proto === 'HTTP') nbHttp++;
+                if(p.proto === 'HTTPS') nbTls++;
+            });
+
+            // --- NOUVEAU CALCUL : LES AUTRES ---
+            const nbAutres = totalPaquets - (nbHttp + nbTls);
+
+            const labelsProto = Object.keys(countsProto);
+            const dataProto = Object.values(countsProto);
+            const topSources = Object.entries(countsSource).sort((a, b) => b[1] - a[1]).slice(0, 5);
+            const labelsTopSource = topSources.map(x => x[0]);
+            const dataTopSource = topSources.map(x => x[1]);
+
+            // --- 3. ALERTES ---
+            let penalites = [];
+            const elementsAlertes = document.querySelectorAll('#listeAlertes li.alerte');
+            
+            elementsAlertes.forEach(el => {
+                penalites.push(`- 🛑 <b>ALERTE CRITIQUE :</b> ${el.innerText}`);
+            });
+
+            if (nbHttp > 0) penalites.push(`- ⚠️ <b>Non-Chiffré :</b> ${nbHttp} flux HTTP détectés (Risque d'interception).`);
+            if (penalites.length === 0) penalites.push("✅ Aucune anomalie majeure détectée dans les flux affichés.");
+
+            let couleur, niveau, explicationScore;
+            if (scoreVal >= 90) { couleur = "#27ae60"; niveau = "EXCELLENT"; explicationScore = "Réseau sain et sécurisé."; }
+            else if (scoreVal >= 70) { couleur = "#2980b9"; niveau = "BON"; explicationScore = "Niveau acceptable."; }
+            else if (scoreVal >= 50) { couleur = "#f39c12"; niveau = "ATTENTION"; explicationScore = "Comportements à risque détectés."; }
+            else { couleur = "#c0392b"; niveau = "CRITIQUE"; explicationScore = "Vulnérabilités graves présentes."; }
+
+            // --- 4. TABLEAU ---
+            let menacesDetails = dataSet.map(p => 
+                `<tr>
+                    <td>${p.heure}</td>
+                    <td style="color:${p.proto === 'HTTP' ? '#c0392b' : '#333'}; font-weight:bold;">${p.proto}</td>
+                    <td>${p.src} &rarr; ${p.dst}</td>
+                    <td>${p.info.substring(0, 60)}</td>
+                </tr>`
+            ).join('');
+
+            if (menacesDetails === "") menacesDetails = "<tr><td colspan='4' style='text-align:center;'>Aucun paquet dans cette vue.</td></tr>";
+
+            const rapportHTML = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Rapport NETSCOPE</title>
+                    <script src="https://cdn.jsdelivr.net/npm/chart.js"><\/script>
+                    <style>
+                        @page { size: A4; margin: 15mm; }
+                        @media print { body { -webkit-print-color-adjust: exact; } .no-break { break-inside: avoid; } canvas { max-width: 100% !important; } }
+                        body { font-family: 'Segoe UI', Helvetica, Arial, sans-serif; color: #333; margin: 0; padding: 20px; font-size: 14px; }
+                        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #2c3e50; padding-bottom: 15px; margin-bottom: 20px; }
+                        .logo-area img { height: 50px; }
+                        .titre-doc h1 { margin: 0; color: #2c3e50; font-size: 22px; text-transform: uppercase; }
+                        .score-box { background: #f8f9fa; border: 1px solid #ddd; padding: 15px; border-radius: 8px; display: flex; align-items: center; margin-bottom: 20px; }
+                        .score-circle { width: 80px; height: 80px; border-radius: 50%; background: ${couleur}; color: white; display: flex; justify-content: center; align-items: center; font-size: 28px; font-weight: bold; margin-right: 20px; }
+                        .audit-title { font-size: 15px; font-weight: bold; color: #2c3e50; border-left: 5px solid #2c3e50; padding-left: 10px; margin-bottom: 10px; text-transform: uppercase; background: #eef2f5; padding: 5px 10px; }
+                        .penalites-box { background: #fff0f0; border: 1px solid #ffcccc; padding: 10px; border-radius: 5px; color: #c0392b; font-size: 0.9em; }
+                        .penalites-box ul { margin: 0; padding-left: 20px; list-style-type: none; }
+                        .penalites-box li { margin-bottom: 5px; }
+                        
+                        .grid { display: flex; gap: 10px; margin-bottom: 20px; } /* Gap réduit pour faire tenir 4 cartes */
+                        .card { flex: 1; background: white; border: 1px solid #eee; padding: 10px; text-align: center; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+                        .card-val { display: block; font-size: 20px; font-weight: bold; margin-bottom: 5px; }
+                        
+                        .charts-container { display: flex; gap: 20px; margin-bottom: 20px; }
+                        .chart-box { flex: 1; border: 1px solid #eee; padding: 10px; border-radius: 5px; text-align:center; }
+                        .chart-img-final { max-width: 100%; max-height: 250px; object-fit: contain; }
+                        table { width: 100%; border-collapse: collapse; font-size: 0.85em; }
+                        th { background: #2c3e50; color: white; padding: 8px; text-align: left; }
+                        td { border-bottom: 1px solid #eee; padding: 6px 8px; }
+                        tr:nth-child(even) { background-color: #f9f9f9; }
+                        .footer { margin-top: 30px; font-size: 11px; text-align: center; color: #999; border-top: 1px solid #eee; padding-top: 10px; }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <div class="logo-area"><img src="${logoSrc}" alt="Logo"></div>
+                        <div class="titre-doc"><h1>${titreRapport}</h1><p>${dateAudit} | Filtre: ${filtreProto}</p></div>
+                    </div>
+
+                    <div class="score-box no-break">
+                        <div class="score-circle">${scoreVal}</div>
+                        <div style="flex:1;"><h2 style="margin:0; color:${couleur}">Sécurité : ${niveau}</h2><p style="margin:5px 0; font-style:italic;">${explicationScore}</p></div>
+                    </div>
+
+                    <div class="audit-section no-break">
+                        <div class="audit-title">📉 Rapport des Menaces et Pénalités</div>
+                        <div class="penalites-box">
+                            <ul>${penalites.map(p => `<li>${p}</li>`).join('')}</ul>
+                        </div>
+                    </div>
+
+                    <div class="audit-section no-break">
+                        <div class="audit-title">📊 Volumétrie (Vue Actuelle : ${totalPaquets} paquets)</div>
+                        <div class="grid">
+                            <div class="card" style="border-top: 3px solid #c0392b;"><span class="card-val" style="color:#c0392b">${elementsAlertes.length}</span>Alertes</div>
+                            <div class="card" style="border-top: 3px solid #f39c12;"><span class="card-val" style="color:#f39c12">${nbHttp}</span>HTTP</div>
+                            <div class="card" style="border-top: 3px solid #27ae60;"><span class="card-val" style="color:#27ae60">${nbTls}</span>HTTPS</div>
+                            <div class="card" style="border-top: 3px solid #2980b9;"><span class="card-val" style="color:#2980b9">${nbAutres}</span>Autres</div>
+                        </div>
+                    </div>
+
+                    <div class="audit-section no-break">
+                        <div class="audit-title">📈 Visualisation</div>
+                        <div class="charts-container">
+                            <div class="chart-box"><h4>Protocoles</h4><div id="imgProtoContainer"></div><canvas id="chartProto"></canvas></div>
+                            <div class="chart-box"><h4>Top Sources</h4><div id="imgSourceContainer"></div><canvas id="chartSource"></canvas></div>
+                        </div>
+                    </div>
+
+                    <div class="audit-section">
+                        <div class="audit-title">🕵️ Journal des flux</div>
+                        <table><thead><tr><th>Heure</th><th>Proto</th><th>Source &rarr; Destination</th><th>Info</th></tr></thead><tbody>${menacesDetails}</tbody></table>
+                    </div>
+
+                    <div class="footer">NETSCOPE Security Audit Tool - Rapport généré automatiquement.</div>
+
+                    <script>
+                        window.onload = function() {
+                            const opts = { animation: false, responsive: true, plugins: { legend: { position: 'bottom' } } };
+                            
+                            new Chart(document.getElementById('chartProto'), {
+                                type: 'doughnut',
+                                data: { labels: ${JSON.stringify(labelsProto)}, datasets: [{ data: ${JSON.stringify(dataProto)}, backgroundColor: ['#3498db', '#e74c3c', '#f1c40f', '#2ecc71', '#9b59b6'] }] },
+                                options: { ...opts, animation: { onComplete: function() { 
+                                    document.getElementById('imgProtoContainer').innerHTML = '<img src="' + this.toBase64Image() + '" class="chart-img-final">';
+                                    document.getElementById('chartProto').style.display = 'none';
+                                }}} 
+                            });
+
+                            new Chart(document.getElementById('chartSource'), {
+                                type: 'bar',
+                                data: { labels: ${JSON.stringify(labelsTopSource)}, datasets: [{ label: 'Paquets', data: ${JSON.stringify(dataTopSource)}, backgroundColor: '#34495e', borderRadius: 3 }] },
+                                options: { ...opts, scales: { y: { beginAtZero: true } }, animation: { onComplete: function() { 
+                                    document.getElementById('imgSourceContainer').innerHTML = '<img src="' + this.toBase64Image() + '" class="chart-img-final">';
+                                    document.getElementById('chartSource').style.display = 'none';
+                                }}} 
+                            });
+
+                            setTimeout(() => { window.print(); }, 1500);
+                        }
+                    <\/script>
+                </body>
+                </html>`;
+
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(rapportHTML);
+            printWindow.document.close();
+        }
+
+        function appliquerFiltresLocaux() {
+            const typeFiltre = document.getElementById('filtreProto').value;
+            const ipFiltre = document.getElementById('filtreIpClient').value.toLowerCase().trim();
+
+            TRAFIC_FILTRE = TOUT_LE_TRAFIC.filter(p => {
+                let matchProto = true;
+                if (typeFiltre === "SUSPECT") matchProto = p.proto === 'HTTP';
+                else if (typeFiltre !== "ALL") matchProto = p.proto === typeFiltre;
+
+                let matchIp = true;
+                if (ipFiltre) {
+                    const src = (p.src || "").toLowerCase();
+                    const dst = (p.dst || "").toLowerCase();
+                    matchIp = src.includes(ipFiltre) || dst.includes(ipFiltre);
+                }
+                return matchProto && matchIp;
+            });
+            pageActuelle = 1;
+            afficherTableau();
+        }
+
         function changerTaillePage() {
             lignesParPage = parseInt(document.getElementById('rowsPerPage').value);
-            pageActuelle = 1; 
-            afficherTableauPage();
+            pageActuelle = 1;
+            afficherTableau();
         }
 
-        function changerPage(direction) {
-            const maxPages = Math.ceil(TRAFIC_FILTRE.length / lignesParPage);
-            const nouvellePage = pageActuelle + direction;
-
-            if (nouvellePage >= 1 && nouvellePage <= maxPages) {
-                pageActuelle = nouvellePage;
-                afficherTableauPage();
-            }
+        function changerPage(dir) {
+            const max = Math.ceil(TRAFIC_FILTRE.length / lignesParPage);
+            const next = pageActuelle + dir;
+            if(next >= 1 && next <= max) { pageActuelle = next; afficherTableau(); }
         }
 
-        function afficherTableauPage() {
+        function afficherTableau() {
             const tbody = document.getElementById('tableBody');
             tbody.innerHTML = "";
-
+            const max = Math.ceil(TRAFIC_FILTRE.length / lignesParPage);
+            
             if (TRAFIC_FILTRE.length === 0) {
-                tbody.innerHTML = "<tr><td colspan='6' style='text-align:center; padding:20px;'>Aucun résultat pour ce filtre.</td></tr>";
                 document.getElementById('pageInfo').innerText = "0/0";
+                tbody.innerHTML = "<tr><td colspan='7' style='text-align:center'>Aucune donnée.</td></tr>";
                 return;
             }
 
-            // Découpage
-            const debut = (pageActuelle - 1) * lignesParPage;
-            const fin = debut + lignesParPage;
-            const donneesPage = TRAFIC_FILTRE.slice(debut, fin); 
+            const start = (pageActuelle - 1) * lignesParPage;
+            const end = start + lignesParPage;
+            const data = TRAFIC_FILTRE.slice(start, end);
+            document.getElementById('pageInfo').innerText = `${pageActuelle}/${max}`;
 
-            // Infos Page
-            const maxPages = Math.ceil(TRAFIC_FILTRE.length / lignesParPage);
-            document.getElementById('pageInfo').innerText = `${pageActuelle}/${maxPages}`;
-            document.getElementById('btnPrev').disabled = (pageActuelle === 1);
-            document.getElementById('btnNext').disabled = (pageActuelle === maxPages);
-
-            // Rendu
-            donneesPage.forEach(ligne => {
+            data.forEach((ligne, index) => {
                 const tr = document.createElement('tr');
+                if(ligne.proto === 'HTTP') tr.className = "row-http";
+                if(ligne.proto === 'DNS') tr.className = "row-dns";
+                if(ligne.proto === 'HTTPS') tr.className = "row-tls";
                 
                 let badgeClass = "badge-other";
-                if(ligne.proto === 'HTTP') { tr.className = "row-http"; badgeClass = "badge-http"; }
-                if(ligne.proto === 'DNS') { tr.className = "row-dns"; badgeClass = "badge-dns"; }
-                if(ligne.proto === 'HTTPS') { tr.className = "row-tls"; badgeClass = "badge-https"; }
+                if(ligne.proto === 'HTTP') badgeClass = "badge-http";
+                else if(ligne.proto === 'HTTPS') badgeClass = "badge-https";
+                else if(ligne.proto === 'DNS') badgeClass = "badge-dns";
+                else if(ligne.proto === 'TCP') badgeClass = "badge-tcp";
+                else if(ligne.proto === 'UDP') badgeClass = "badge-udp";
 
-                let serviceDisplay = (ligne.service && ligne.service !== "-" && ligne.service !== "Autre") 
-                    ? `<span class="service-col">${ligne.service}</span>` 
-                    : `<span style="color:#999">-</span>`;
-
+                const globalIndex = start + index;
                 tr.innerHTML = `
+                    <td style="text-align:center;"><button class="btn-detail" onclick="voirDetails(${globalIndex})">🔍</button></td>
                     <td>${ligne.heure}</td>
-                    <td>${serviceDisplay}</td>
-                    <td>${ligne.src || '?'}</td>
-                    <td>${ligne.dst || '?'}</td>
+                    <td><span class="service-col">${ligne.service || '-'}</span></td>
+                    <td>${ligne.src}</td>
+                    <td>${ligne.dst}</td>
                     <td><span class="badge ${badgeClass}">${ligne.proto}</span></td>
                     <td style="font-size:0.85em; color:#555;">${ligne.info}</td>
                 `;
                 tbody.appendChild(tr);
             });
         }
+
+        function voirDetails(index) {
+            const packet = TRAFIC_FILTRE[index];
+            const content = document.getElementById('modalContent');
+            content.innerHTML = "";
+
+            function renderLayer(title, data) {
+                if(!data || Object.keys(data).length === 0) return "";
+                let html = `<div class='layer-title'>${title}</div><div class='layer-content'>`;
+                for (const [key, value] of Object.entries(data)) {
+                    let shortKey = key.split('.').pop(); 
+                    html += `<div class='detail-row'><span class='detail-key'>${shortKey}</span><span class='detail-val'>${value}</span></div>`;
+                }
+                html += "</div>";
+                return html;
+            }
+
+            let htmlFull = "";
+            htmlFull += renderLayer("1. FRAME (Physique)", packet.layers.frame);
+            htmlFull += renderLayer("2. ETHERNET (Liaison)", packet.layers.eth);
+            htmlFull += renderLayer("3. INTERNET (IP)", packet.layers.ip);
+            htmlFull += renderLayer("4. TRANSPORT (TCP/UDP)", packet.layers.transport);
+
+            content.innerHTML = htmlFull;
+            document.getElementById('detailModal').style.display = "block";
+        }
+
+        function fermerModal() { document.getElementById('detailModal').style.display = "none"; }
+        window.onclick = function(event) { if (event.target == document.getElementById('detailModal')) fermerModal(); }
     </script>
 </body>
 </html>
