@@ -17,13 +17,11 @@
 ## Installation
 
 Installer les dépendances Installez les bibliothèques Python nécessaires via pip :
-```bashpip install -r requirements.txt```
+```pip install -r requirements.txt```
 
 1. **Cloner le projet**
    Récupérez le code source via Git :
-   ```bash
-   git clone [https://github.com/JustNS23/netscope.git](https://github.com/JustNS23/netscope.git)
-   cd netscope
+   ``` git clone [https://github.com/JustNS23/netscope.git](https://github.com/JustNS23/netscope.git) cd netscope```
 
 ## Configuration (Windows)
 Une version de Wireshark portable est déjà présente mais il est possible de spécifier le chemin vers l'exécutable Tshark.
@@ -32,11 +30,11 @@ Ouvrez les fichiers app.py et analyzer.py dans votre éditeur de code.
 Localisez la variable TSHARK_CMD.
 
 Assurez-vous qu'elle pointe vers votre dossier d'installation Wireshark (exemple ci-dessous) :
-```bash TSHARK_CMD = r"C:\Program Files\Wireshark\tshark.exe"```
+```TSHARK_CMD = r"C:\Program Files\Wireshark\tshark.exe"```
 
 ## Utilisation
 1.Lancer l'application Exécutez la commande suivante dans le terminal :
-```bash python app.py```
+```python app.py```
 
 2.Accéder à l'interface Ouvrez votre navigateur et allez à l'adresse : http://127.0.0.1:5000
 
@@ -47,7 +45,7 @@ Cet outil est conçu exclusivement à des fins éducatives et de diagnostic rés
 
 ## Commande de test
 
-```bash curl -X POST -d "username=admin&password=MonMotDePasseSecret123" http://httpbin.org/post ```
+```curl -X POST -d "username=admin&password=MonMotDePasseSecret123" http://httpbin.org/post```
 
 1. curl : C'est l'outil standard pour faire des requêtes réseau en ligne de commande.
 
