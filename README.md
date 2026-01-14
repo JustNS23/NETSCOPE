@@ -45,4 +45,18 @@ Assurez-vous qu'elle pointe vers votre dossier d'installation Wireshark (exemple
 ## Avertissement légal
 Cet outil est conçu exclusivement à des fins éducatives et de diagnostic réseau sur votre propre infrastructure. L'interception ou l'analyse de réseaux tiers sans consentement explicite est illégale et punissable par la loi.
 
+## Commande de test
+
+```bash curl -X POST -d "username=admin&password=MonMotDePasseSecret123" http://httpbin.org/post ```
+
+1. curl : C'est l'outil standard pour faire des requêtes réseau en ligne de commande.
+
+2. -X POST : Simule l'envoi d'un formulaire (comme quand tu cliques sur "Se connecter").
+
+3. -d "..." : Ce sont les données (Data). Ici, on envoie explicitement les champs username et password avec une fausse valeur.
+
+4. http://... : C'est le point crucial. On utilise HTTP (port 80) et non HTTPS (port 443).
+   En HTTPS, ton script Netscope verrait des données chiffrées illisibles (ex: a8f9z3...).
+   En HTTP, ton script Netscope va voir passer le texte brut : password=MonMotDePasseSecret123.
+   
 ## Aperçu de l'interface
