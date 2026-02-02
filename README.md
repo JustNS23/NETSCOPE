@@ -1,7 +1,7 @@
 # NETSCOPE
 
-<p align="center">
-  <img src="static/logo.png" alt="NETSCOPE Logo" width="120">
+<p align="center"><img width="120" height="515" alt="logo" src="https://github.com/user-attachments/assets/8114d0e2-c064-4d6c-9cc9-fdc1210a0ab0" />
+
 </p>
 
 <p align="center">
@@ -29,11 +29,11 @@ Développé en Python et basé sur la puissance de **Tshark**, NETSCOPE automati
 
 | Module | Description Analytique |
 |---|---|
-| **🛡️ Score de Santé** | Algorithme de notation en temps réel basé sur la conformité des protocoles, les bonnes pratiques de configuration et la détection d’activités suspectes. |
-| **🚨 Alertes Critiques** | Détection immédiate d’éléments sensibles circulant en clair (mots de passe, identifiants, requêtes non chiffrées) et de comportements anormaux. |
-| **🕵️ Fingerprinting** | Identification automatique des types de terminaux (Apple, Samsung, IoT, etc.) via l’analyse des OUI (Organizationally Unique Identifiers) des adresses MAC. |
-| **📊 Top Talkers** | Classement des IP sources/destinations et des services les plus bavards ou les plus gourmands en bande passante. |
-| **📄 Rapport PDF Pro** | Génération de rapports d’audit détaillés, prêts à être partagés avec des clients, des RSSI ou intégrés à une documentation de conformité. |
+| **Score de Santé** | Algorithme de notation en temps réel basé sur la conformité des protocoles, les bonnes pratiques de configuration et la détection d’activités suspectes. |
+| **Alertes Critiques** | Détection immédiate d’éléments sensibles circulant en clair (mots de passe, identifiants, requêtes non chiffrées) et de comportements anormaux. |
+| **Fingerprinting** | Identification automatique des types de terminaux (Apple, Samsung, IoT, etc.) via l’analyse des OUI (Organizationally Unique Identifiers) des adresses MAC. |
+| **Top Talkers** | Classement des IP sources/destinations et des services les plus bavards ou les plus gourmands en bande passante. |
+| **Rapport PDF Pro** | Génération de rapports d’audit détaillés, prêts à être partagés avec des clients, des RSSI ou intégrés à une documentation de conformité. |
 
 ---
 
@@ -91,15 +91,19 @@ NETSCOPE transforme des données réseau brutes en informations directement expl
 - **Dépendance réseau :** Wireshark avec **Tshark** accessible dans le `PATH` système (vérifiable via `tshark -v`)  
 - **Navigateur :** Un navigateur moderne (Chrome, Firefox, Edge) pour accéder à l’interface web Flask  
 
-## Prérequis techniques
+## 🔧 Prérequis techniques
 
 - **Python 3.x** installé sur la machine.
 - **Wireshark** installé (assurez-vous que **Tshark** est inclus lors de l'installation).
 
-## Installation
+### Installation
 
 Installer les dépendances Installez les bibliothèques Python nécessaires via pip :
-```bashpip install -r requirements.txt```
+
+```bash
+pip install -r requirements.txt
+```
+
 ---
 
 ## 📥 Installation
