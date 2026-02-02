@@ -1,102 +1,119 @@
+import os
+import sys
 import json
+import argparse
 import subprocess
 import collections
-import os
+import time
 from datetime import datetime
-import sys
 
-# --- CONFIGURATION DU CHEMIN RELATIF (PORTABLE) ---
-# On récupère le dossier où se trouve ce fichier python
+# --- GESTION LIBRAIRIE MAC ---
+try:
+    from mac_vendor_lookup import MacLookup
+except ImportError:
+    MacLookup = None
+
+# --- CONFIGURATION CHEMINS ---
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-# On construit le chemin vers le tshark.exe qui est DANS le dossier du projet
-# Chemin typique de la version Portable : /Wireshark/App/Wireshark/tshark.exe
 TSHARK_PATH = os.path.join(BASE_DIR, "Wireshark", "App", "Wireshark", "tshark.exe")
 
-# Sécurité : Si on ne le trouve pas en portable, on essaie le chemin classique ou le PATH
 if not os.path.exists(TSHARK_PATH):
-    print(f"ATTENTION: Tshark portable non trouvé ici : {TSHARK_PATH}")
-    print("Tentative avec le chemin système par défaut...")
-    TSHARK_PATH = r"C:\Program Files\Wireshark\tshark.exe"
+    if os.name == 'nt':
+        tshark_sys = r"C:\Program Files\Wireshark\tshark.exe"
+        TSHARK_PATH = tshark_sys if os.path.exists(tshark_sys) else "tshark"
+    else:
+        TSHARK_PATH = "tshark"
+
+# --- CACHE ---
+mac_lookup_instance = None
+mac_cache = {} 
+
+def init_mac_lookup():
+    global mac_lookup_instance
+    if MacLookup is None: return False
+    try:
+        mac_lookup_instance = MacLookup()
+        try: mac_lookup_instance.lookup("00:00:00:00:00:00")
+        except: mac_lookup_instance.update_vendors()
+    except:
+        mac_lookup_instance = None
+        return False
+    return True
+
+def get_vendor(mac_address):
+    if not mac_lookup_instance or not mac_address: return ""
+    if mac_address in mac_cache: return mac_cache[mac_address]
+    try:
+        vendor = mac_lookup_instance.lookup(mac_address)
+        mac_cache[mac_address] = vendor
+        return vendor
+    except:
+        mac_cache[mac_address] = "" 
+        return ""
 
 def extraire_service(texte):
     if not texte or not isinstance(texte, str): return "Autre"
-    
     GERS = ['google', 'facebook', 'instagram', 'whatsapp', 'netflix', 'youtube', 'spotify', 'apple', 'microsoft', 'amazon', 'tiktok', 'snapchat', 'twitch', 'discord']
-    texte_lower = texte.lower()
-    
     for geant in GERS:
-        if geant in texte_lower: return geant.capitalize()
-    
-    try:
-        parties = texte.split('.')
-        if len(parties) >= 2:
-            candidat = parties[-2]
-            if len(candidat) > 2: return candidat.capitalize()
-    except:
-        pass
+        if geant in texte.lower(): return geant.capitalize()
     return "Autre"
 
-def analyser_trafic(fichier_pcap, tshark_filter=None):
-    
+def analyser_trafic(fichier_pcap, tshark_filter=None, activer_fingerprint=True):
+    # Initialisation DB si besoin
+    if activer_fingerprint and MacLookup: init_mac_lookup()
+
     cmd = [TSHARK_PATH, "-r", fichier_pcap, "-T", "json"]
-    
     if tshark_filter and tshark_filter.strip():
         cmd.extend(["-Y", tshark_filter])
 
-    print(f"DEBUG: Lancement analyse Tshark sur {fichier_pcap}")
+    print(f"DEBUG: Analyse de {fichier_pcap}...")
 
     try:
-        if not os.path.exists(fichier_pcap):
-            return {"score_global": 0, "total_paquets": 0, "details_trafic": [], "alertes_securite": [], "repartition_protocoles": {}}
-
+        if not os.path.exists(fichier_pcap): return {"error": "Fichier introuvable", "score_global": 0}
         output = subprocess.check_output(cmd, encoding='utf-8', errors='ignore')
-        
-        if not output:
-            return {"score_global": 100, "total_paquets": 0, "details_trafic": [], "alertes_securite": [], "repartition_protocoles": {}}
-
+        if not output: return {"score_global": 100, "total_paquets": 0, "details_trafic": [], "alertes_securite": [], "repartition_protocoles": {}}
         paquets = json.loads(output)
-        print(f"DEBUG: JSON chargé. {len(paquets)} paquets trouvés.")
-
     except Exception as e:
-        print(f"ERREUR CRITIQUE TSHARK: {e}")
-        return {"error": str(e), "score_global": 0, "details_trafic": [], "alertes_securite": [], "total_paquets": 0}
+        print(f"ERREUR TSHARK: {e}")
+        return {"error": str(e), "score_global": 0}
 
     score = 100
     protocoles = collections.Counter()
     alertes = []
     details_trafic = []
-    
-    # --- INTELLIGENCE : Dictionnaire pour traquer les scans ---
-    # Clé = (IP_Source, IP_Destination)
-    # Valeur = Set des ports touchés (pour éviter les doublons)
     tracker_scan = collections.defaultdict(set)
-    
+    appareils_detectes = {} 
+
     for i, paquet in enumerate(paquets):
         try:
             layers = paquet.get('_source', {}).get('layers', {})
             
             # --- DATE ROBUSTE ---
-            ts_raw = layers.get('frame', {}).get('frame.time_epoch', '0')
-            ts_str = str(ts_raw)
-            heure = "00:00:00"
+            ts_raw = layers.get('frame', {}).get('frame.time_epoch', time.time())
+            if isinstance(ts_raw, list): ts_raw = ts_raw[0]
+            try: heure = datetime.fromtimestamp(float(ts_raw)).strftime('%H:%M:%S')
+            except: heure = "00:00:00"
 
-            if 'T' in ts_str:
-                try: heure = ts_str.split('T')[1].split('.')[0]
-                except: heure = datetime.now().strftime('%H:%M:%S')
-            else:
-                try: heure = datetime.fromtimestamp(float(ts_raw)).strftime('%H:%M:%S')
-                except: heure = datetime.now().strftime('%H:%M:%S')
+            # --- IP & MAC ---
+            src_ip = layers.get('ip', {}).get('ip.src', '?')
+            dst_ip = layers.get('ip', {}).get('ip.dst', '?')
+            
+            src_mac = layers.get('eth', {}).get('eth.src')
+            if not src_mac: src_mac = layers.get('wlan', {}).get('wlan.sa')
+            if isinstance(src_mac, list): src_mac = src_mac[0]
 
-            # --- IP ---
-            src = layers.get('ip', {}).get('ip.src', '?')
-            dst = layers.get('ip', {}).get('ip.dst', '?')
+            # --- FINGERPRINTING ---
+            vendor_str = ""
+            if activer_fingerprint and src_mac:
+                vendor_str = get_vendor(src_mac)
+                if src_ip != '?' and src_ip not in appareils_detectes:
+                    appareils_detectes[src_ip] = {"mac": src_mac, "vendor": vendor_str}
 
             # --- PROTOCOLE ---
             proto = "AUTRE"
             info_brute = ""
             service_nom = ""
-            port_dst = None # On stocke le port pour la détection d'attaque
+            port_dst = None
 
             if 'tcp' in layers: 
                 proto = "TCP"
@@ -107,99 +124,91 @@ def analyser_trafic(fichier_pcap, tshark_filter=None):
 
             if 'dns' in layers:
                 proto = "DNS"
+                info_brute = "DNS Query"
+                # Extraction nom de domaine si dispo
                 queries = layers['dns'].get('Queries', {})
                 if isinstance(queries, dict):
-                    for key, val in queries.items():
-                        if isinstance(val, dict) and 'dns.qry.name' in val:
-                            info_brute = val['dns.qry.name']
+                    for k,v in queries.items():
+                        if isinstance(v, dict) and 'dns.qry.name' in v:
+                            info_brute = v['dns.qry.name']
                             service_nom = extraire_service(info_brute)
                             break
-            
+
             elif 'http' in layers:
                 proto = "HTTP"
                 host = layers['http'].get('http.host', '')
                 uri = layers['http'].get('http.request.uri', '')
-                info_brute = str(host) + str(uri)
+                info_brute = f"{host}{uri}"
                 service_nom = extraire_service(str(host))
                 score -= 0.5
                 if 'http.authorization' in layers['http']:
                     score -= 5
                     alertes.append(f"Mot de passe clair vers {service_nom}")
-            
+
             elif 'tls' in layers:
                 proto = "HTTPS"
                 service_nom = "Web Sécurisé"
+                if 'tls.handshake.extensions_server_name' in layers.get('tls', {}):
+                    info_brute = layers['tls']['tls.handshake.extensions_server_name']
+                    service_nom = extraire_service(info_brute)
 
-            if not service_nom:
-                if port_dst:
-                    info_brute = f"Port {port_dst}"
-                    p_str = str(port_dst)
-                    if p_str == '443': service_nom = "Web Sécurisé"
-                    elif p_str == '80': service_nom = "Web"
-                    elif p_str == '53': service_nom = "DNS"
-                    elif p_str == '22': service_nom = "SSH"
-                    elif p_str == '445': service_nom = "SMB"
-                    else: service_nom = "-"
+            if not service_nom and port_dst:
+                 p = str(port_dst)
+                 if isinstance(p, list): p = p[0]
+                 if p=='443': service_nom="HTTPS"
+                 elif p=='80': service_nom="HTTP"
+                 elif p=='53': service_nom="DNS"
+                 elif p=='22': service_nom="SSH"
+                 else: service_nom="-"
 
-            # --- INTELLIGENCE : ENREGISTREMENT DU SCAN ---
-            if src != '?' and dst != '?' and port_dst:
-                # On note que SRC a touché le port PORT_DST sur la machine DST
-                tracker_scan[(src, dst)].add(str(port_dst))
+            if src_ip != '?' and dst_ip != '?' and port_dst:
+                tracker_scan[(src_ip, dst_ip)].add(str(port_dst))
 
             protocoles[proto] += 1
             
-            couches_brutes = {
-                "frame": layers.get("frame", {}),
-                "ip": layers.get("ip", {}),
-                "transport": layers.get("tcp", {}) if "tcp" in layers else layers.get("udp", {})
-            }
-
             details_trafic.append({
                 "heure": heure,
-                "src": src,
-                "dst": dst,
+                "src": src_ip,
+                "dst": dst_ip,
+                "vendor": vendor_str, 
+                "mac": src_mac, 
                 "proto": proto,
                 "service": service_nom,
                 "info": str(info_brute),
-                "layers": couches_brutes
+                "layers": layers # <--- TRES IMPORTANT POUR LA LOUPE
             })
 
         except Exception as e:
-            if i == 0: print(f"🛑 ERREUR LECTURE PAQUET {i}: {e}")
             continue
 
-    # --- ANALYSE FINALE DES SCANS (NMAP / RECONNAISSANCE) ---
-    # On regarde si quelqu'un a touché trop de ports différents
-    for (attaquant, victime), ports_touches in tracker_scan.items():
-        nb_ports = len(ports_touches)
-        
-        # SEUIL D'ALERTE : Si plus de 15 ports différents visés
-        if nb_ports > 15:
-            msg = f"SCAN DE PORTS DÉTECTÉ : {attaquant} a scanné {nb_ports} ports sur {victime}"
-            alertes.append(msg)
-            score -= 25 # Grosse pénalité sur le score
-            print(f"ALERTE: {msg}")
+    for (attaquant, victime), ports in tracker_scan.items():
+        if len(ports) > 15:
+            alertes.append(f"SCAN DE PORTS : {attaquant} -> {victime} ({len(ports)} ports)")
+            score -= 25
 
-    # --- FINALISATION ---
-    score = max(0, int(score))
+    score = max(0, min(100, int(score)))
+    liste_appareils = [{"ip": k, "mac": v["mac"], "vendor": v["vendor"]} for k, v in appareils_detectes.items()]
     
-    a_trouve_faille_critique = False
-    for alerte in alertes:
-        if "Mot de passe" in alerte:
-            a_trouve_faille_critique = True
-            break
-    if a_trouve_faille_critique: score = min(score, 45)
-
-    details_trafic.reverse()
-
-    # LIMITE AUGMENTÉE A 10000 POUR LES GRANDS SCANS
-    if len(details_trafic) > 10000:
-        details_trafic = details_trafic[:10000]
+    if len(details_trafic) > 3000: details_trafic = details_trafic[:3000]
 
     return {
         "score_global": score,
         "total_paquets": len(paquets),
         "repartition_protocoles": dict(protocoles),
         "alertes_securite": list(set(alertes)),
+        "appareils_detectes": liste_appareils,
         "details_trafic": details_trafic
     }
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("fichier", nargs='?', help="Chemin du fichier PCAP")
+    parser.add_argument("--fingerprint", action="store_true", help="Activer Mac Vendor")
+    
+    args = parser.parse_args()
+    
+    if args.fichier:
+        res = analyser_trafic(args.fichier, activer_fingerprint=args.fingerprint)
+        print(json.dumps(res, indent=4, ensure_ascii=False))
+    else:
+        print("Erreur: Aucun fichier fourni.")
