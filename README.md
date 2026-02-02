@@ -142,12 +142,6 @@ http://127.0.0.1:5000
 - Les alertes de sécurité
 - Les rapports PDF générés
 
-📚 Roadmap (idées d’évolution)
-- Intégration d’authentification (panel admin / multi-utilisateurs)
-- Export des résultats vers des SIEM (Elastic, Splunk, etc.)
-- Mode « headless » pour usage uniquement en ligne de commande
-- Intégration Docker pour un déploiement simplifié
-- Ajout de règles de détection personnalisables (YAML/JSON)
 
 ## ⚖️ Mentions Légales & Responsabilités
 
