@@ -9,10 +9,10 @@
 </p>
 
 <p align="center">
-  <img alt="Python" src="https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white">
+  <img alt="Python" src="https://img.shields.io/badge/Python-3.x-3776AB?style=for-the-badge&logo=python&logoColor=white">
   <img alt="Flask" src="https://img.shields.io/badge/Flask-Framework-000000?style=for-the-badge&logo=flask&logoColor=white">
   <img alt="Tshark" src="https://img.shields.io/badge/Powered_by-Tshark-16a085?style=for-the-badge&logo=wireshark&logoColor=white">
-  <img alt="MIT" src="https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge">
+  <img alt="©" src="https://img.shields.io/badge/License-©-yellow?style=for-the-badge">
 </p>
 
 ---
