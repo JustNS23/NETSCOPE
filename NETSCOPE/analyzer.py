@@ -6,6 +6,7 @@ import subprocess
 import collections
 import time
 from datetime import datetime
+from tls_engine import tls_engine # NOUVEAU
 
 # --- GESTION LIBRAIRIE MAC ---
 try:
@@ -58,15 +59,17 @@ def extraire_service(texte):
         if geant in texte.lower(): return geant.capitalize()
     return "Autre"
 
-def analyser_trafic(fichier_pcap, tshark_filter=None, activer_fingerprint=True):
-    # Initialisation DB si besoin
+# --- MODIFICATION DE LA SIGNATURE ---
+def analyser_trafic(fichier_pcap, tshark_filter=None, activer_fingerprint=True, activer_tls=False):
     if activer_fingerprint and MacLookup: init_mac_lookup()
 
+    # Ajout des champs TLS à l'extraction Tshark pour avoir les infos nécessaires
+    # On ajoute -e tls.handshake... si on veut être précis, mais ici on prend le JSON full
     cmd = [TSHARK_PATH, "-r", fichier_pcap, "-T", "json"]
     if tshark_filter and tshark_filter.strip():
         cmd.extend(["-Y", tshark_filter])
 
-    print(f"DEBUG: Analyse de {fichier_pcap}...")
+    print(f"DEBUG: Analyse {fichier_pcap} (TLS={activer_tls})...")
 
     try:
         if not os.path.exists(fichier_pcap): return {"error": "Fichier introuvable", "score_global": 0}
@@ -88,32 +91,38 @@ def analyser_trafic(fichier_pcap, tshark_filter=None, activer_fingerprint=True):
         try:
             layers = paquet.get('_source', {}).get('layers', {})
             
-            # --- DATE ROBUSTE ---
+            # --- DATE ---
             ts_raw = layers.get('frame', {}).get('frame.time_epoch', time.time())
             if isinstance(ts_raw, list): ts_raw = ts_raw[0]
             try: heure = datetime.fromtimestamp(float(ts_raw)).strftime('%H:%M:%S')
-            except: heure = "00:00:00"
+            except: heure = datetime.now().strftime('%H:%M:%S')
 
-            # --- IP & MAC ---
-            src_ip = layers.get('ip', {}).get('ip.src', '?')
-            dst_ip = layers.get('ip', {}).get('ip.dst', '?')
+            # --- IP/MAC ---
+            src_ip = layers.get('ip', {}).get('ip.src')
+            dst_ip = layers.get('ip', {}).get('ip.dst')
+            if not src_ip: src_ip = layers.get('ipv6', {}).get('ipv6.src', '?')
+            if not dst_ip: dst_ip = layers.get('ipv6', {}).get('ipv6.dst', '?')
             
+            if isinstance(src_ip, list): src_ip = src_ip[0]
+            if isinstance(dst_ip, list): dst_ip = dst_ip[0]
+
             src_mac = layers.get('eth', {}).get('eth.src')
             if not src_mac: src_mac = layers.get('wlan', {}).get('wlan.sa')
             if isinstance(src_mac, list): src_mac = src_mac[0]
 
-            # --- FINGERPRINTING ---
+            # --- VENDOR ---
             vendor_str = ""
             if activer_fingerprint and src_mac:
                 vendor_str = get_vendor(src_mac)
                 if src_ip != '?' and src_ip not in appareils_detectes:
                     appareils_detectes[src_ip] = {"mac": src_mac, "vendor": vendor_str}
 
-            # --- PROTOCOLE ---
+            # --- PROTO ---
             proto = "AUTRE"
             info_brute = ""
             service_nom = ""
             port_dst = None
+            tls_info = None # Pour stocker le résultat JA3
 
             if 'tcp' in layers: 
                 proto = "TCP"
@@ -125,7 +134,6 @@ def analyser_trafic(fichier_pcap, tshark_filter=None, activer_fingerprint=True):
             if 'dns' in layers:
                 proto = "DNS"
                 info_brute = "DNS Query"
-                # Extraction nom de domaine si dispo
                 queries = layers['dns'].get('Queries', {})
                 if isinstance(queries, dict):
                     for k,v in queries.items():
@@ -133,7 +141,6 @@ def analyser_trafic(fichier_pcap, tshark_filter=None, activer_fingerprint=True):
                             info_brute = v['dns.qry.name']
                             service_nom = extraire_service(info_brute)
                             break
-
             elif 'http' in layers:
                 proto = "HTTP"
                 host = layers['http'].get('http.host', '')
@@ -144,17 +151,35 @@ def analyser_trafic(fichier_pcap, tshark_filter=None, activer_fingerprint=True):
                 if 'http.authorization' in layers['http']:
                     score -= 5
                     alertes.append(f"Mot de passe clair vers {service_nom}")
-
+            
             elif 'tls' in layers:
                 proto = "HTTPS"
                 service_nom = "Web Sécurisé"
-                if 'tls.handshake.extensions_server_name' in layers.get('tls', {}):
-                    info_brute = layers['tls']['tls.handshake.extensions_server_name']
-                    service_nom = extraire_service(info_brute)
+                
+                # --- NOUVEAU : ANALYSE CHIFFRÉE ---
+                if activer_tls:
+                    tls_result = tls_engine.process_packet(layers['tls'])
+                    if tls_result['sni']:
+                        info_brute = f"SNI: {tls_result['sni']}"
+                        service_nom = extraire_service(tls_result['sni'])
+                    
+                    if tls_result['ja3_hash']:
+                        # On ajoute le hash JA3 dans l'info pour l'expert
+                        info_brute += f" [JA3: {tls_result['ja3_hash'][:6]}...]"
+                    
+                    if tls_result['is_suspicious']:
+                        score -= 10
+                        alertes.append(f"TLS Suspect ({src_ip}): {', '.join(tls_result['risk_reason'])}")
+                        
+                    tls_info = tls_result # On stocke pour le détail
+                else:
+                    # Mode simple
+                    if 'tls.handshake.extensions_server_name' in layers.get('tls', {}):
+                        info_brute = layers['tls']['tls.handshake.extensions_server_name']
+                        service_nom = extraire_service(info_brute)
 
             if not service_nom and port_dst:
-                 p = str(port_dst)
-                 if isinstance(p, list): p = p[0]
+                 p = str(port_dst) if not isinstance(port_dst, list) else str(port_dst[0])
                  if p=='443': service_nom="HTTPS"
                  elif p=='80': service_nom="HTTP"
                  elif p=='53': service_nom="DNS"
@@ -166,7 +191,8 @@ def analyser_trafic(fichier_pcap, tshark_filter=None, activer_fingerprint=True):
 
             protocoles[proto] += 1
             
-            details_trafic.append({
+            # Construction de la ligne
+            packet_data = {
                 "heure": heure,
                 "src": src_ip,
                 "dst": dst_ip,
@@ -175,8 +201,13 @@ def analyser_trafic(fichier_pcap, tshark_filter=None, activer_fingerprint=True):
                 "proto": proto,
                 "service": service_nom,
                 "info": str(info_brute),
-                "layers": layers # <--- TRES IMPORTANT POUR LA LOUPE
-            })
+                "layers": layers
+            }
+            # Si on a des infos TLS avancées, on les ajoute
+            if tls_info:
+                packet_data["tls_analysis"] = tls_info
+
+            details_trafic.append(packet_data)
 
         except Exception as e:
             continue
@@ -201,14 +232,5 @@ def analyser_trafic(fichier_pcap, tshark_filter=None, activer_fingerprint=True):
     }
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("fichier", nargs='?', help="Chemin du fichier PCAP")
-    parser.add_argument("--fingerprint", action="store_true", help="Activer Mac Vendor")
-    
-    args = parser.parse_args()
-    
-    if args.fichier:
-        res = analyser_trafic(args.fichier, activer_fingerprint=args.fingerprint)
-        print(json.dumps(res, indent=4, ensure_ascii=False))
-    else:
-        print("Erreur: Aucun fichier fourni.")
+    # Test simple
+    pass
