@@ -1,0 +1,40 @@
+NETSCOPE END-USER LICENSE AGREEMENT (EULA)
+Copyright (c) 2026 JustNS23. All rights reserved.
+
+1. GRANT OF LICENSE
+This license grants you a non-exclusive, non-transferable right to use the 
+NETSCOPE software solely for PERSONAL, PRIVATE, and EDUCATIONAL purposes. 
+The software is intended for network diagnostics on infrastructures you own 
+or have explicit permission to monitor.
+
+2. COMMERCIAL AND PROFESSIONAL RESTRICTIONS
+Any use of this software, in whole or in part, for professional, corporate, 
+commercial purposes, or within a business environment is STRICTLY PROHIBITED. 
+This includes, but is not limited to:
+- Use for paid network auditing services.
+- Integration into commercial software products.
+- Use by IT departments for corporate monitoring.
+To obtain a commercial license, you must contact the author (JustNS23) for 
+written authorization.
+
+3. INTELLECTUAL PROPERTY
+The source code, logic, and branding of NETSCOPE remain the exclusive 
+property of JustNS23. You may modify the code for your personal use, but 
+you may not redistribute modified versions without including this original 
+license and providing clear attribution to the original author.
+
+4. LEGAL COMPLIANCE & ETHICS
+The user agrees to use NETSCOPE in compliance with all local and international 
+laws. The author does not condone or support the use of this tool for 
+unauthorized network interception (sniffing) on third-party networks.
+
+5. DISCLAIMER OF WARRANTY
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. 
+
+6. LIMITATION OF LIABILITY
+IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER 
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, 
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN 
+THE SOFTWARE.

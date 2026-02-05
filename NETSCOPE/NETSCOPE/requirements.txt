@@ -1,0 +1,6 @@
+Flask
+requests
+pyshark
+numpy
+scikit-learn
+pymisp
