@@ -14,6 +14,27 @@ try:
 except ImportError:
     MacLookup = None
 
+# Ports considérés comme "standard" (non suspects)
+PORTS_STANDARD = {
+    '20', '21', '22', '23', '25', '53', '67', '68', '80', '110', '123',
+    '143', '443', '465', '587', '993', '995', '3389', '5353', '8080', '8443'
+}
+
+# Plages IP privées (RFC1918)
+def est_ip_privee(ip):
+    if not ip or ip == '?': return True
+    parts = ip.split('.')
+    if len(parts) != 4: return True
+    try:
+        a, b = int(parts[0]), int(parts[1])
+        return (a == 10 or a == 127 or
+                (a == 172 and 16 <= b <= 31) or
+                (a == 192 and b == 168) or
+                (a == 169 and b == 254) or
+                a >= 224)  # Multicast/broadcast
+    except:
+        return True
+
 # --- CONFIGURATION CHEMINS ---
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 TSHARK_PATH = os.path.join(BASE_DIR, "Wireshark", "App", "Wireshark", "tshark.exe")
@@ -60,7 +81,7 @@ def extraire_service(texte):
     return "Autre"
 
 # --- MODIFICATION DE LA SIGNATURE ---
-def analyser_trafic(fichier_pcap, tshark_filter=None, activer_fingerprint=True, activer_tls=False):
+def analyser_trafic(fichier_pcap, tshark_filter=None, activer_fingerprint=True, activer_tls=False, blacklist=None, whitelist=None):
     if activer_fingerprint and MacLookup: init_mac_lookup()
 
     # Ajout des champs TLS à l'extraction Tshark pour avoir les infos nécessaires
@@ -80,12 +101,19 @@ def analyser_trafic(fichier_pcap, tshark_filter=None, activer_fingerprint=True, 
         print(f"ERREUR TSHARK: {e}")
         return {"error": str(e), "score_global": 0}
 
+    # Normalisation des listes
+    blacklist_set = set(b.strip() for b in (blacklist or []) if b.strip())
+    whitelist_set = set(w.strip() for w in (whitelist or []) if w.strip())
+
     score = 100
     protocoles = collections.Counter()
     alertes = []
     details_trafic = []
     tracker_scan = collections.defaultdict(set)
-    appareils_detectes = {} 
+    appareils_detectes = {}
+    ips_blacklistees_vues = set()
+    connexions_externes = 0
+    volumes_par_ip = collections.Counter()  # Suivi volume en octets par IP source
 
     for i, paquet in enumerate(paquets):
         try:
@@ -189,19 +217,63 @@ def analyser_trafic(fichier_pcap, tshark_filter=None, activer_fingerprint=True, 
             if src_ip != '?' and dst_ip != '?' and port_dst:
                 tracker_scan[(src_ip, dst_ip)].add(str(port_dst))
 
+            # --- TAILLE PAQUET ---
+            frame_len = 0
+            try: frame_len = int(layers.get('frame', {}).get('frame.len', 0))
+            except: pass
+            if src_ip != '?':
+                volumes_par_ip[src_ip] += frame_len
+
+            # --- BLACKLIST CHECK ---
+            est_blackliste = False
+            if blacklist_set:
+                if src_ip in blacklist_set or dst_ip in blacklist_set:
+                    est_blackliste = True
+                    ip_suspecte = src_ip if src_ip in blacklist_set else dst_ip
+                    if ip_suspecte not in ips_blacklistees_vues:
+                        alertes.append(f"[BLACKLIST] IP malveillante détectée : {ip_suspecte}")
+                        score -= 15
+                        ips_blacklistees_vues.add(ip_suspecte)
+
+            # --- WHITELIST : Pas d'alerte pour les IPs de confiance ---
+            est_whiteliste = src_ip in whitelist_set or dst_ip in whitelist_set
+
+            # --- PORT INHABITUEL ---
+            if port_dst and proto in ('TCP', 'UDP') and not est_whiteliste:
+                p_str = str(port_dst) if not isinstance(port_dst, list) else str(port_dst[0])
+                try:
+                    p_int = int(p_str)
+                    if p_str not in PORTS_STANDARD and p_int > 1024 and p_int < 49152:
+                        # Port enregistré mais inhabituel (1025-49151)
+                        if p_int not in (3306, 5432, 27017, 6379, 9200, 1433):  # Exclure DB connues
+                            service_nom = service_nom or f"Port {p_str}"
+                except: pass
+
+            # --- CONNEXION EXTERNE ---
+            ip_externe = None
+            if not est_ip_privee(dst_ip):
+                connexions_externes += 1
+                ip_externe = dst_ip
+            elif not est_ip_privee(src_ip):
+                ip_externe = src_ip
+
             protocoles[proto] += 1
-            
+
             # Construction de la ligne
             packet_data = {
                 "heure": heure,
                 "src": src_ip,
                 "dst": dst_ip,
-                "vendor": vendor_str, 
-                "mac": src_mac, 
+                "vendor": vendor_str,
+                "mac": src_mac,
                 "proto": proto,
                 "service": service_nom,
                 "info": str(info_brute),
-                "layers": layers
+                "layers": layers,
+                "is_blacklisted": est_blackliste,
+                "is_whitelisted": est_whiteliste,
+                "ip_externe": ip_externe,
+                "frame_len": frame_len
             }
             # Si on a des infos TLS avancées, on les ajoute
             if tls_info:
@@ -217,10 +289,27 @@ def analyser_trafic(fichier_pcap, tshark_filter=None, activer_fingerprint=True, 
             alertes.append(f"SCAN DE PORTS : {attaquant} -> {victime} ({len(ports)} ports)")
             score -= 25
 
+    # --- DÉTECTION VOLUMES ANORMAUX ---
+    if volumes_par_ip:
+        volume_moyen = sum(volumes_par_ip.values()) / len(volumes_par_ip)
+        seuil_anomalie = max(volume_moyen * 5, 500_000)  # 5x la moyenne ou 500KB min
+        for ip, volume in volumes_par_ip.items():
+            if volume > seuil_anomalie and ip not in whitelist_set:
+                volume_mb = volume / (1024 * 1024)
+                alertes.append(f"VOLUME ANORMAL : {ip} ({volume_mb:.1f} MB transférés)")
+                score -= 10
+
     score = max(0, min(100, int(score)))
     liste_appareils = [{"ip": k, "mac": v["mac"], "vendor": v["vendor"]} for k, v in appareils_detectes.items()]
-    
+
     if len(details_trafic) > 3000: details_trafic = details_trafic[:3000]
+
+    # Top connexions externes (IPs publiques les plus contactées)
+    ips_externes_counter = collections.Counter()
+    for p in details_trafic:
+        if p.get('ip_externe'):
+            ips_externes_counter[p['ip_externe']] += 1
+    top_ips_externes = [{"ip": ip, "count": cnt} for ip, cnt in ips_externes_counter.most_common(10)]
 
     return {
         "score_global": score,
@@ -228,7 +317,10 @@ def analyser_trafic(fichier_pcap, tshark_filter=None, activer_fingerprint=True, 
         "repartition_protocoles": dict(protocoles),
         "alertes_securite": list(set(alertes)),
         "appareils_detectes": liste_appareils,
-        "details_trafic": details_trafic
+        "details_trafic": details_trafic,
+        "connexions_externes": connexions_externes,
+        "top_ips_externes": top_ips_externes,
+        "volumes_par_ip": dict(volumes_par_ip.most_common(10))
     }
 
 if __name__ == "__main__":

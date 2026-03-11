@@ -203,7 +203,15 @@ def scan():
         )
         
         # 2. Analyse Base
-        resultats = analyser_trafic(path_pcap, tshark_filter=None, activer_fingerprint=use_fingerprint, activer_tls=use_tls_analysis)
+        sec_lists = get_security_lists()
+        resultats = analyser_trafic(
+            path_pcap,
+            tshark_filter=None,
+            activer_fingerprint=use_fingerprint,
+            activer_tls=use_tls_analysis,
+            blacklist=sec_lists.get('blacklist', []),
+            whitelist=sec_lists.get('whitelist', [])
+        )
         resultats['interface'] = interface_choisie # Ajout meta pour le SOC
 
         # 3. Intelligence Artificielle
@@ -233,6 +241,7 @@ def scan():
             
         meta = {
             "id": job_id, "date": timestamp, "interface": interface_choisie,
+            "duration": duree,
             "score": resultats['score_global'], "paquets": resultats['total_paquets'],
             "alertes": len(resultats['alertes_securite']), "pcap_file": nom_pcap, "report_file": nom_json
         }

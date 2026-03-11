@@ -1,0 +1,13 @@
+{
+    "high_perf": true,
+    "tls_analysis": true,
+    "ai_analysis": true,
+    "visu_sankey": true,
+    "threat_intel": false,
+    "misp_url": "",
+    "misp_key": "",
+    "soc_integration": false,
+    "soc_url": "",
+    "soc_token": "",
+    "soc_format": "JSON"
+}

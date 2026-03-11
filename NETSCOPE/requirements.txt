@@ -1,6 +1,33 @@
-Flask
-requests
-pyshark
-numpy
-scikit-learn
-pymisp
+# ============================================================
+#  NETSCOPE v2.0 — Dépendances Python
+# ============================================================
+
+# --- CORE (obligatoires) ---
+Flask>=2.3.0               # Serveur web et API REST
+requests>=2.31.0           # Envoi vers SOC/SIEM + géolocalisation ip-api.com
+numpy>=1.24.0              # Calculs matriciels pour l'IA
+
+# --- ANALYSE IA (obligatoire si module IA activé) ---
+scikit-learn>=1.3.0        # IsolationForest : détection d'anomalies réseau
+
+# --- FINGERPRINT MAC (optionnel) ---
+# Résolution des adresses MAC → fabricant (Intel, Apple, Cisco...)
+mac-vendor-lookup>=0.1.12
+
+# --- INTÉGRATIONS (optionnelles, activables dans l'admin) ---
+
+# MISP Threat Intelligence — nécessite une instance MISP accessible
+# pymisp>=2.4.0
+
+# ============================================================
+#  Installation rapide :
+#    pip install -r requirements.txt
+#
+#  Sans les optionnelles (léger) :
+#    pip install Flask requests numpy scikit-learn mac-vendor-lookup
+#
+#  Prérequis système :
+#    - Wireshark / tshark installé (https://www.wireshark.org/download.html)
+#    - Python 3.9+
+#    - Droits administrateur pour la capture réseau
+# ============================================================
