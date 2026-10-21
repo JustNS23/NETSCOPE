@@ -1,6 +1,6 @@
 # NETSCOPE
 
-<p align="center"><img width="415" height="415" alt="logo" src="https://github.com/user-attachments/assets/8114d0e2-c064-4d6c-9cc9-fdc1210a0ab0" />
+<p align="center"><img width="215" height="215" alt="logo" src="https://github.com/user-attachments/assets/8114d0e2-c064-4d6c-9cc9-fdc1210a0ab0" />
 
 
 <p align="center">
