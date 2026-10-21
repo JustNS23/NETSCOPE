@@ -1,8 +1,7 @@
 # NETSCOPE
 
-<p align="center"><img width="120" height="515" alt="logo" src="https://github.com/user-attachments/assets/8114d0e2-c064-4d6c-9cc9-fdc1210a0ab0" />
+<p align="center"><img width="415" height="415" alt="logo" src="https://github.com/user-attachments/assets/8114d0e2-c064-4d6c-9cc9-fdc1210a0ab0" />
 
-</p>
 
 <p align="center">
   <b>Plateforme d'Analyse Réseau & Audit de Cybersécurité</b>
